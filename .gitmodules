@@ -1,0 +1,3 @@
+[submodule "l5kit"]
+	path = l5kit
+	url = https://github.com/lyft/l5kit.git
