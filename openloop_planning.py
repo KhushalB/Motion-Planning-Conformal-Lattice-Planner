@@ -10,6 +10,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from tqdm import tqdm
 
+from math import sin, cos
+from scipy.integrate import quad
+
 from l5kit.configs import load_config_data
 from l5kit.data import LocalDataManager, ChunkedDataset
 from l5kit.dataset import EgoDataset
@@ -22,9 +25,113 @@ from l5kit.random import GaussianRandomGenerator
 import os
 
 
-def lattice_planner():
-    return None
+def lattice_planner(x_i, y_i, heading_i, curvature_i, x_f, y_f, heading_f, curvature_f):
+    h_i, c_i = heading_i, curvature_i
+    h_f, c_f = heading_f, curvature_f
+    # curvature is the curvature of the route, which we will sample
+    # basically it is a proxy for a realistic, comfortable turning radius
 
+    path = "Path that satisfies kinematic constraints"
+    t_params = [a0, a1, a2, a3, t0]
+
+    return path
+
+def objective_integrand(s, a0, a1, a2, a3):
+    """ Integrand to use with objective_function() """
+    return (a3*s**3 + a2*s**2 + a1*s + a0)**2
+
+def objective_function(a0, a1, a2, a3, sf):
+    """ Objective function, using the quad integral solver
+    from SciPy on our objective_integrand (variable 's') 
+    from 0 to sf, using coefficients a0, a1, a2, and a3 """
+    return quad(objective_integrand, 0, sf, args=(a0,a1,a2,a3))
+
+def x_soft(alpha, p4, xf, x0, theta_params):
+    """ Soft inequality constraints, allows a small
+    margin of error between goal point and final point
+    in the curve. Scaled by alpha. """
+    return alpha*(x_s(p4, x0, theta_params)-xf)
+
+def y_soft(beta, p4, yf, y0, theta_params):
+    """ Soft inequality constraints, allows a small
+    margin of error between goal point and final point
+    in the curve. Scaled by beta. """
+    return beta*(y_s(p4, y0, theta_params)-yf)
+
+def theta_soft(gamma, p4, tf, theta_params):
+    """ Soft inequality constraints, allows a small
+    margin of error between goal point and final point
+    in the curve. Scaled by gamma. """
+    return gamma*(theta_s(p4, theta_params)-tf)
+
+def x_s(s, x0, theta_params):
+    """ Estimates x value at location 's' along curve. Requires
+    starting x value, as well as args to find theta(s). Uses
+    Simpson's rule to divide domain into n=8 sections. """
+    n0 = cos(theta_s(0, theta_params))
+    n1 = 4*cos(theta_s(1s/8, theta_params))
+    n2 = 2*cos(theta_s(2s/8, theta_params))
+    n3 = 4*cos(theta_s(3s/8, theta_params))
+    n4 = 2*cos(theta_s(4s/8, theta_params))
+    n5 = 4*cos(theta_s(5s/8, theta_params))
+    n6 = 2*cos(theta_s(6s/8, theta_params))
+    n7 = 4*cos(theta_s(7s/8, theta_params))
+    n8 = cos(theta_s(s, theta_params))
+    n_sum = n0+n1+n2+n3+n4+n5+n6+n7+n8
+    return x0 + (s/24)*(n_sum)
+
+def y_s(s, y0, theta_params):
+    """ Estimates y value at location 's' along curve. Requires
+    starting y value, as well as args to find theta(s). Uses
+    Simpson's rule to divide domain into n=8 sections. """
+    n0 = sin(theta_s(0, theta_params))
+    n1 = 4*sin(theta_s(1s/8, theta_params))
+    n2 = 2*sin(theta_s(2s/8, theta_params))
+    n3 = 4*sin(theta_s(3s/8, theta_params))
+    n4 = 2*sin(theta_s(4s/8, theta_params))
+    n5 = 4*sin(theta_s(5s/8, theta_params))
+    n6 = 2*sin(theta_s(6s/8, theta_params))
+    n7 = 4*sin(theta_s(7s/8, theta_params))
+    n8 = sin(theta_s(s, theta_params))
+    n_sum = n0+n1+n2+n3+n4+n5+n6+n7+n8
+    return x0 + (s/24)*(n_sum)
+
+def theta_s(s, tp):
+    """ Finds theta value at location 's' along curve.
+    Takes in theta parameters 'tp', which are the initial theta
+    value and the curve's polynomial coefficients a0-a3 """
+    t0,a0,a1,a2,a3 = tp[0],tp[1],tp[2],tp[3],tp[4]
+    s4 = a3 * s**4 / 4
+    s3 = a2 * s**3 / 3
+    s2 = a1 * s**2 / 2
+    s1 = a0 * s
+    return t0+s4+s3+s2+s1
+
+def remap_a0(p0):
+    """ Map optimization params back to
+    spiral coefficients. """
+    return p0
+
+def remap_a1(p0, p1, p2, p3, p4):
+    """ Map optimization params back to
+    spiral coefficients. """
+    num = -1*(11*p0/2 - 9*p1 + 9*p2/2 - p3)
+    denom = p4
+    return num/denom
+
+def remap_a2(p0, p1, p2, p3, p4):
+    """ Map optimization params back to
+    spiral coefficients. """
+    num = 9*p0 - 45*p1/2 + 18*p2 - 9*p3/2
+    denom = p4**2
+    return num/denom
+
+def remap_a3(p0, p1, p2, p3, p4):
+    """ Map optimization params back to
+    spiral coefficients. """
+    num = -1*(9*p0/2 - 27*p1/2 + 27*p2/2 - 9*p3/2)
+    denom = p4**3
+    return num/denom
 
 # Prepare data path and load cfg
 # set env variable for data
