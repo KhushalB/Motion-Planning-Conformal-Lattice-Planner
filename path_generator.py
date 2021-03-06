@@ -14,6 +14,14 @@ class PathGenerator:
         a bit of error, we make these small. Kmax determinines the
         max sharpness of a turn. If we want a very smooth ride, we make this
         small, if we are okay with sharp turns, we make this large."""
+        
+        # NOTE: I'm not quite sure what the k0 and kf values represent.
+        # I believe it is just the output of the spiral equation, so is
+        # it just the (x,y,theta) of the start and end? They suggested
+        # that they would be known constants. I know that intermediate
+        # values are used to create turning radius constraints. In that
+        # case, how would it be different from theta? -Carson
+        
         # Start conditions
         self.x0, self.y0 = start_x, start_y
         self.t0, self.k0 = start_theta, start_curvature
@@ -43,7 +51,7 @@ class PathGenerator:
         
         # NOTE: I still don't quite understand the mapping from the p's to the a's and back
         # I get that it makes the optimization problem easier, but I don't get the logistics
-        # of how and when we are supposed to do it
+        # of how and when we are supposed to do it -Carson
 
         # returns a kinematically feasible cubic spiral from start point to end point
         return path
