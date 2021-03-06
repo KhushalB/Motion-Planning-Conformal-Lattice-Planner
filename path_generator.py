@@ -2,6 +2,8 @@ from math import sin, cos
 from scipy.integrate import quad
 from scipy.optimize import minimize
 
+# This is based on the tutorial found here: https://tinyurl.com/dkjvanmh
+
 class PathGenerator:
     def __init__(self, start_x, start_y, start_theta, start_curvature, 
                         goal_x, goal_y, goal_theta, goal_curvature,
