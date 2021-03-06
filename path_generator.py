@@ -34,11 +34,17 @@ class PathGenerator:
         # Constraints for the optimization problem
         self.bound_p1 = [-1*self.kmax, self.kmax]    # p1's constraint
         self.bound_p2 = [-1*self.kmax, self.kmax]    # p2's constraint
+        self.bounds = [self.bound_p1, self.bound_p2]
 
         # TODO: optimize self.objective_function
         path_raw = "Optimization of self.objective_function() for params p1, p2, p4"
+        # Pseudocode layout?: optimize(self.objective_function, params=[self.p1, self.p2, self.p4], bounds=self.bounds)
         path = "The path above, but mapping the p values back to spiral parameters"
         
+        # NOTE: I still don't quite understand the mapping from the p's to the a's and back
+        # I get that it makes the optimization problem easier, but I don't get the logistics
+        # of how and when we are supposed to do it
+
         # returns a kinematically feasible cubic spiral from start point to end point
         return path
 
