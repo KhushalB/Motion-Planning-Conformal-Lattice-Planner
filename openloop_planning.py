@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from math import sin, cos
 from scipy.integrate import quad
+from scipy.optimize import minimize
 
 from l5kit.configs import load_config_data
 from l5kit.data import LocalDataManager, ChunkedDataset
@@ -25,26 +26,70 @@ from l5kit.random import GaussianRandomGenerator
 import os
 
 
-def lattice_planner(x_i, y_i, heading_i, curvature_i, x_f, y_f, heading_f, curvature_f):
-    h_i, c_i = heading_i, curvature_i
-    h_f, c_f = heading_f, curvature_f
-    # curvature is the curvature of the route, which we will sample
-    # basically it is a proxy for a realistic, comfortable turning radius
+def lattice_planner(x0, y0, heading_i, curvature_i, xf, yf, heading_f, curvature_f):
+    t0, k0 = heading_i, curvature_i
+    tf, kf = heading_f, curvature_f
 
     path = "Path that satisfies kinematic constraints"
-    t_params = [a0, a1, a2, a3, t0]
+
+    # NOTE: at this point we don't know sf
+    sf = 3
+    p1 = 1
+    p2 = 1
+
+    p0 = k0
+    #p1 = k_s(sf/3, t_params)
+    #p2 = k_s(2*sf/3, t_params)
+    p3 = kf
+    p4 = sf
+
+    # NOTE: the parameters we are solving are p1, p2, and p4
+
+    a0_p = remap_a0(p0)
+    a1_p = remap_a1(p0,p1,p2,p3,p4)
+    a2_p = remap_a2(p0,p1,p2,p3,p4)
+    a3_p = remap_a3(p0,p1,p2,p3,p4)
+
+    t_params = [a0_p, a1_p, a2_p, a3_p, t0]
+    
+    # Tunable variables
+    k_max = 0.5
+    alpha = 10
+    beta = 10
+    gamma = 10
+
+    f_be = obj_function(a0_p, a1_p, a2_p, a3_p, p4)
+    x_sc = x_soft(alpha, p4, xf, x0, t_params)
+    y_sc = y_soft(beta, p4, yf, y0, t_params)
+    t_sc = theta_soft(gamma, p4, tf, t_params)
+    # This is our overall objective function below
+    # Optimization parameters are p1, p2, and p4
+    min_obj = f_be + x_sc + y_sc + t_sc
+    
+    constraint_1 = abs(p1) < k_max
+    constraint_2 = abs(p2) < k_max
+
+    guess = 3
+    # result = minimize(min_obj, guess, method='L-BFGS-B',
+    #                             jac=objective_jacobian, bounds=bounds,
+    #                             options={'disp': True})
 
     return path
 
-def objective_integrand(s, a0, a1, a2, a3):
+def k_s(s, t_params):
+    """ Our cubic spiral equation """
+    a0,a1,a2,a3 = tp[1],tp[2],tp[3],tp[4]
+    return a3*s**3 + a2*s**2 + a1*s + a0
+
+def obj_integrand(s, a0, a1, a2, a3):
     """ Integrand to use with objective_function() """
     return (a3*s**3 + a2*s**2 + a1*s + a0)**2
 
-def objective_function(a0, a1, a2, a3, sf):
+def obj_function(a0, a1, a2, a3, sf):
     """ Objective function, using the quad integral solver
     from SciPy on our objective_integrand (variable 's') 
     from 0 to sf, using coefficients a0, a1, a2, and a3 """
-    return quad(objective_integrand, 0, sf, args=(a0,a1,a2,a3))
+    return quad(obj_integrand, 0, sf, args=(a0,a1,a2,a3))
 
 def x_soft(alpha, p4, xf, x0, theta_params):
     """ Soft inequality constraints, allows a small
