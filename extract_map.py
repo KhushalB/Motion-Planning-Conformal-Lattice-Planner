@@ -9,11 +9,11 @@ OTHER_VEHICLE = np.array([0, 0, 255])
 OFF_ROAD = np.array([255, 255, 255])
 
 
-def extract_map(dataset, data_index, plot=False):
-    data = dataset[data_index]
-
+def extract_map(data, rasterizer):
     im = data["image"].transpose(1, 2, 0)
-    im = dataset.rasterizer.to_rgb(im)
+    im = rasterizer.to_rgb(im)
+    history_positions_pixels = transform_points(data["history_positions"],
+                                                data["raster_from_agent"]) 
     target_positions_pixels = transform_points(data["target_positions"],
                                                data["raster_from_agent"])
 
@@ -33,10 +33,10 @@ def extract_map(dataset, data_index, plot=False):
                 if not np.array_equal(cell, OFF_ROAD):
                     our_map[col, row] = 2
 
-    start_position = target_positions_pixels[0]
+    start_position = history_positions_pixels[0]
     end_position = target_positions_pixels[-1]
 
-    if plot:
-        plt.imshow(our_map)
-        plt.show()
-    return our_map, start_position, end_position
+    start_heading = data['history_yaws'][0]
+    end_heading = data['target_yaws'][-1]
+
+    return our_map, start_position, end_position, start_heading, end_heading
