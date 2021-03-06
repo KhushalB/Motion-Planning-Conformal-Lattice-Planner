@@ -69,13 +69,13 @@ def x_s(s, x0, theta_params):
     starting x value, as well as args to find theta(s). Uses
     Simpson's rule to divide domain into n=8 sections. """
     n0 = cos(theta_s(0, theta_params))
-    n1 = 4*cos(theta_s(1s/8, theta_params))
-    n2 = 2*cos(theta_s(2s/8, theta_params))
-    n3 = 4*cos(theta_s(3s/8, theta_params))
-    n4 = 2*cos(theta_s(4s/8, theta_params))
-    n5 = 4*cos(theta_s(5s/8, theta_params))
-    n6 = 2*cos(theta_s(6s/8, theta_params))
-    n7 = 4*cos(theta_s(7s/8, theta_params))
+    n1 = 4*cos(theta_s(1*s/8, theta_params))
+    n2 = 2*cos(theta_s(2*s/8, theta_params))
+    n3 = 4*cos(theta_s(3*s/8, theta_params))
+    n4 = 2*cos(theta_s(4*s/8, theta_params))
+    n5 = 4*cos(theta_s(5*s/8, theta_params))
+    n6 = 2*cos(theta_s(6*s/8, theta_params))
+    n7 = 4*cos(theta_s(7*s/8, theta_params))
     n8 = cos(theta_s(s, theta_params))
     n_sum = n0+n1+n2+n3+n4+n5+n6+n7+n8
     return x0 + (s/24)*(n_sum)
@@ -85,13 +85,13 @@ def y_s(s, y0, theta_params):
     starting y value, as well as args to find theta(s). Uses
     Simpson's rule to divide domain into n=8 sections. """
     n0 = sin(theta_s(0, theta_params))
-    n1 = 4*sin(theta_s(1s/8, theta_params))
-    n2 = 2*sin(theta_s(2s/8, theta_params))
-    n3 = 4*sin(theta_s(3s/8, theta_params))
-    n4 = 2*sin(theta_s(4s/8, theta_params))
-    n5 = 4*sin(theta_s(5s/8, theta_params))
-    n6 = 2*sin(theta_s(6s/8, theta_params))
-    n7 = 4*sin(theta_s(7s/8, theta_params))
+    n1 = 4*sin(theta_s(1*s/8, theta_params))
+    n2 = 2*sin(theta_s(2*s/8, theta_params))
+    n3 = 4*sin(theta_s(3*s/8, theta_params))
+    n4 = 2*sin(theta_s(4*s/8, theta_params))
+    n5 = 4*sin(theta_s(5*s/8, theta_params))
+    n6 = 2*sin(theta_s(6*s/8, theta_params))
+    n7 = 4*sin(theta_s(7*s/8, theta_params))
     n8 = sin(theta_s(s, theta_params))
     n_sum = n0+n1+n2+n3+n4+n5+n6+n7+n8
     return x0 + (s/24)*(n_sum)
@@ -174,7 +174,7 @@ for idx_data, data in enumerate(tqdm(eval_dataloader)):
     yaw_preds_dl.append(result_dl["yaws"].detach().cpu().numpy())
 
     # TODO: Lattice Planner results
-    # im, position = extract_map(data['image'])
+    our_map, start_position, end_position, start_heading, end_heading = extract_map(data, rasterizer)
     # result_lp = lattice_planner()
     # position_preds_lp.append(result_lp["positions"].detach().cpu().numpy())
     # yaw_preds_lp.append(result_lp["yaws"].detach().cpu().numpy())
