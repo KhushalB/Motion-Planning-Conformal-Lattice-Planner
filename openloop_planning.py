@@ -58,38 +58,35 @@ def lattice_planner(x0, y0, heading_i, curvature_i, xf, yf, heading_f, curvature
     beta = 10
     gamma = 10
 
-    f_be = obj_function(a0_p, a1_p, a2_p, a3_p, p4)
-    x_sc = x_soft(alpha, p4, xf, x0, t_params)
-    y_sc = y_soft(beta, p4, yf, y0, t_params)
-    t_sc = theta_soft(gamma, p4, tf, t_params)
-    # This is our overall objective function below
-    # Optimization parameters are p1, p2, and p4
-    min_obj = f_be + x_sc + y_sc + t_sc
-    
+    # probably need to pass p1 and p2 as well
+    # Confused about the parameter-spiral mapping (p0 - p4, a0_p - a3_p)
+    obj = objective(a0_p, a1_p, a2_p, a3_p, p4, alpha, beta, gamma, x0, y0, xf, yf, tf, t_params)
     constraint_1 = abs(p1) < k_max
     constraint_2 = abs(p2) < k_max
 
-    guess = 3
-    # result = minimize(min_obj, guess, method='L-BFGS-B',
-    #                             jac=objective_jacobian, bounds=bounds,
-    #                             options={'disp': True})
-
     return path
+
+def objective(a0_p,a1_p,a2_p,a3_p,p4,alpha,beta,gamma,x0,y0,xf,yf,tf,t_params):
+    """ the parameters to optimize are p1, p2, and p4 """
+    return (f_be(a0_p, a1_p, a2_p, a3_p, p4) + 
+            x_soft(alpha, p4, xf, x0, t_params) + 
+            y_soft(beta, p4, yf, y0, t_params) + 
+            theta_soft(gamma, p4, tf, t_params))
 
 def k_s(s, t_params):
     """ Our cubic spiral equation """
     a0,a1,a2,a3 = tp[1],tp[2],tp[3],tp[4]
     return a3*s**3 + a2*s**2 + a1*s + a0
 
-def obj_integrand(s, a0, a1, a2, a3):
+def fbe_integrand(s, a0, a1, a2, a3):
     """ Integrand to use with objective_function() """
     return (a3*s**3 + a2*s**2 + a1*s + a0)**2
 
-def obj_function(a0, a1, a2, a3, sf):
-    """ Objective function, using the quad integral solver
+def f_be(a0, a1, a2, a3, sf):
+    """ Unconstrained objective function, using the quad integral solver
     from SciPy on our objective_integrand (variable 's') 
     from 0 to sf, using coefficients a0, a1, a2, and a3 """
-    return quad(obj_integrand, 0, sf, args=(a0,a1,a2,a3))
+    return quad(fbe_integrand, 0, sf, args=(a0,a1,a2,a3))
 
 def x_soft(alpha, p4, xf, x0, theta_params):
     """ Soft inequality constraints, allows a small
