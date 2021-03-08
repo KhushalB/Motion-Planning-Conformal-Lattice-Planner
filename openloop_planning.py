@@ -21,7 +21,7 @@ from l5kit.visualization import TARGET_POINTS_COLOR, PREDICTED_POINTS_COLOR, dra
 from l5kit.kinematic import AckermanPerturbation
 from l5kit.random import GaussianRandomGenerator
 
-from extract_map import extract_map
+from extract_map import extract_map, always_in_bounds, get_path_cost
 from path_generator import PathGenerator
 import pdb
 
@@ -88,7 +88,9 @@ def lattice_planner(data, rasterizer):
     goal_x = end_position[0]
     goal_y = end_position[1]
     goal_theta = end_heading[0]
-    goal_curvature = 0
+
+    # straight-line distance between start and goal positions
+    goal_curvature = np.linalg.norm(np.array([goal_x, goal_y]) - np.array([start_x, start_y])) 
 
     # get list of goal states for lattice using lateral offsets
     goal_state_set = get_goal_states(goal_x, goal_y, goal_theta)
@@ -104,9 +106,23 @@ def lattice_planner(data, rasterizer):
                            alpha=10, beta=10, gamma=10, kmax=0.5)
         paths.append(pg.path)
 
-    # TODO: run collision checking and get path with best score
+    # filter out paths that go out of bounds
+    # assumes each point in a path has structure (x, y, yaw), can be adjusted 
+    valid_paths = [p for p in paths if always_in_bounds(p, our_map)]
 
-    return 1
+    # get path costs for remaining paths 
+    path_costs = [get_path_cost(p, our_map) for p in valid_paths]
+
+    # get path with lowest cost
+    lowest_cost_path = np.argmin(path_costs)
+    best_path = valid_paths[lowest_cost_path]
+
+    # get position and yaws 
+    # assumes each point in the path has structure (x, y, yaw), can be adjusted
+    best_path_positions = [(p[0], p[1]) for p in best_path]
+    best_path_yaws = [p[2] for p in best_path]
+
+    return best_path_positions, best_path_yaws
 
 
 # Evaluation loop
@@ -152,9 +168,10 @@ for frame_number in range(0, len(eval_dataset), len(eval_dataset) // 20):
 
     # Lattice planner results
     print('lattice plan for frame number {f}'.format(f=frame_number))
-    result_lp = lattice_planner(data, rasterizer)  # TODO: lattice planner path
-    position_preds_lp.append(result_lp)  # TODO: set to list of 50 positions
-    yaw_preds_lp.append(result_lp)  # TODO: set to list of 50 headings
+    result_lp_positions, result_lp_yaws = lattice_planner(data, rasterizer)  # TODO: lattice planner path
+    position_preds_lp.append(result_lp_positions)  # TODO: set to list of 50 positions
+    yaw_preds_lp.append(result_lp_yaws)  # TODO: set to list of 50 headings
+
 #     our_map, start_position, end_position, start_heading, end_heading = extract_map(data, rasterizer)
 #     start_x = start_position[0]
 #     start_y = start_position[1]
