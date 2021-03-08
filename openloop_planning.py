@@ -88,9 +88,7 @@ def lattice_planner(data, rasterizer):
     goal_x = end_position[0]
     goal_y = end_position[1]
     goal_theta = end_heading[0]
-
-    # straight-line distance between start and goal positions
-    goal_curvature = np.linalg.norm(np.array([goal_x, goal_y]) - np.array([start_x, start_y])) 
+    goal_curvature = 0
 
     # get list of goal states for lattice using lateral offsets
     goal_state_set = get_goal_states(goal_x, goal_y, goal_theta)
@@ -101,6 +99,10 @@ def lattice_planner(data, rasterizer):
         goal_x = goal_state[0]
         goal_y = goal_state[1]
         goal_theta = goal_state[2]
+        
+        # straight-line distance between start and goal positions
+        goal_curvature = np.linalg.norm(np.array([goal_x, goal_y]) - np.array([start_x, start_y])) 
+
         pg = PathGenerator(start_x, start_y, start_theta, start_curvature,
                            goal_x, goal_y, goal_theta, goal_curvature,
                            alpha=10, beta=10, gamma=10, kmax=0.5)
