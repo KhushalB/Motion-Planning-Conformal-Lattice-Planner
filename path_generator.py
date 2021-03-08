@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 class PathGenerator:
     def __init__(self, start_x, start_y, start_theta, start_curvature, 
                         goal_x, goal_y, goal_theta, goal_curvature,
-                        alpha=10, beta=10, gamma=10, kmax=0.5):
+                        alpha=15, beta=25, gamma=35, kmax=0.5):
         """ Takes start and end coordinates, heading, and curvature, 
         returns a curve that connects them. Alpha, beta, and gamma
         scale our soft constraints for x, y, and theta. For example,
@@ -17,13 +17,6 @@ class PathGenerator:
         a bit of error, we make these small. Kmax determinines the
         max sharpness of a turn. If we want a very smooth ride, we make this
         small, if we are okay with sharp turns, we make this large."""
-        
-        # NOTE: I'm not quite sure what the k0 and kf values represent.
-        # I believe it is just the output of the spiral equation, so is
-        # it just the (x,y,theta) of the start and end? They suggested
-        # that they would be known constants. I know that intermediate
-        # values are used to create turning radius constraints. In that
-        # case, how would it be different from theta? -Carson
         
         # Start conditions
         self.x0, self.y0 = start_x, start_y
@@ -58,22 +51,75 @@ class PathGenerator:
         x_0 = [self.p1, self.p2, self.p4]  # initial guess
         print('initial guess')
         print(self.objective_function(x_0))
-        path_raw = minimize(self.objective_function, x_0)
-        print(path_raw)
+        output_params = minimize(self.objective_function, x_0)
+        print(output_params)
         # path = "The path above, but mapping the p values back to spiral parameters"
-        self.p1 = path_raw['x'][0]
-        self.p2 = path_raw['x'][1]
-        self.p4 = path_raw['x'][2]
-        path = [self.a0_map(), self.a1_map(self.p1, self.p2, self.p4), self.a2_map(self.p1, self.p2, self.p4), self.a3_map(self.p1, self.p2, self.p4)]
-
-        self.path = path
+        self.p1 = output_params['x'][0]
+        self.p2 = output_params['x'][1]
+        self.p4 = output_params['x'][2]
         
-        # NOTE: I still don't quite understand the mapping from the p's to the a's and back
-        # I get that it makes the optimization problem easier, but I don't get the logistics
-        # of how and when we are supposed to do it -Carson
+        self.a_list = [self.a0_map(), self.a1_map(self.p1, self.p2, self.p4), self.a2_map(self.p1, self.p2, self.p4), self.a3_map(self.p1, self.p2, self.p4)]
 
-        # returns a kinematically feasible cubic spiral from start point to end point
-        # return path, self.p4
+        # Sample the curve to get our points
+        s_i = 0
+        self.interval = 0.25
+        self.t_list = []
+        self.k_list = []
+        
+        # get theta(s) and k(s) for all 's' with step size 'self.interval'
+        while s_i <= self.p4:
+            k_list.append(self.final_spiral(s_i))
+            t_list.append(self.final_theta(s_i))
+            s_i += self.interval
+
+        # use our theta(s) values to find x(s) and y(s) values with trapezoid rule
+        # the index 's' values should align with t_list and k_list (might be off by 1)
+        x_list = self.x_trapezoidal()
+        x_list.insert(0, self.x0)
+        x_list.insert(-1, self.xf)
+        
+        y_list = self.y_trapezoidal()
+        y_list.insert(0, self.y0)
+        y_list.insert(-1, self.yf)
+        
+        path = [x_list, y_list, t_list, k_list]
+
+        # information of our s values, if helpful
+        s_info = {'min': 0, 'max':s_i, 'interval':self.interval}
+
+        return path, s_info
+
+    def final_spiral(self, s):
+        """ Our final k(s) equation """
+        return self.a_list[3]*s**3 + self.a_list[2]*s**2 + self.a_list[1]*s + self.a_list[0]
+
+    def final_theta(self, s):
+        """ Our final theta(s) equation """
+        return self.t0 + self.a_list[3]/4*s**4 + self.a_list[2]/3*s**3 + self.a_list[1]/2*s**2 + a_list[0]*s
+
+    def x_trapezoidal(self):
+        """ Uses the trapezoidal rule to estimate x. 
+        x = x0 + (cos(s)+cos(s+interval))*interval/2
+        We use indeces to access our precomputed cos(s) values
+        spaced out by our interval (hence the index approach)"""
+        x_list = []
+        # Calculates values up to the second to last index
+        for s_i in range(len(self.t_list)-2):
+            x_s = self.x0 + (1/2)*(cos(self.t_list[s_i])+cos(self.t_list[s_i+1]))*self.interval
+            x_list.append(x_s)
+        return x_list[]
+
+    def y_trapezoidal(self):
+        """ Uses the trapezoidal rule to estimate y. 
+        y = y0 + (sin(s)+sin(s+interval))*interval/2
+        We use indeces to access our precomputed sin(s) values
+        spaced out by our interval (hence the index approach)"""
+        y_list = []
+        # Calculates values up to the second to last index
+        for s_i in range(len(self.t_list)-2):
+            y_s = self.y0 + (1/2)*(sin(self.t_list[s_i])+sin(self.t_list[s_i+1]))*self.interval
+            y_list.append(y_s)
+        return y_list[]
 
     def objective_function(self, x):
         """ the parameters to optimize are p1, p2, and p4 """
