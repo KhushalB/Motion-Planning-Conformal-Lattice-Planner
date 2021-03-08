@@ -40,3 +40,78 @@ def extract_map(data, rasterizer):
     end_heading = data['target_yaws'][-1]
 
     return our_map, start_position, end_position, start_heading, end_heading
+
+
+def always_in_bounds(path, our_map):
+    for i, p in enumerate(path):
+        x = round(p[0])
+        y = round(p[1])
+
+        if our_map[(x, y)] == 0:
+            return False
+    return True
+
+
+def always_in_bounds_no_collision(path, our_map):
+    pass
+
+def dist_from_lane_bound(path_coord, our_map):
+    map_bounds = our_map.shape
+    COL = 0
+    ROW = 1
+    num_col = map_bounds[COL]
+    num_row = map_bounds[ROW]
+
+    dist_to_north_bound = 0
+    current_coord = path_coord
+    while our_map[current_coord] != 2:
+        if current_coord[ROW] - 1 < 0:
+            break
+        dist_to_north_bound += 1
+        current_coord = (current_coord[COL], current_coord[ROW] - 1)
+
+    dist_to_south_bound = 0
+    current_coord = path_coord
+    while our_map[current_coord] != 2:
+        if current_coord[ROW] + 1 >= num_row:
+            break
+        dist_to_south_bound += 1
+        current_coord = (current_coord[COL], current_coord[ROW] + 1)
+
+    dist_to_east_bound = 0
+    current_coord = path_coord
+    while our_map[current_coord] != 2:
+        if current_coord[COL] + 1 >= num_col:
+            break
+        dist_to_east_bound += 1
+        current_coord = (current_coord[COL] + 1, current_coord[ROW])
+
+    dist_to_west_bound = 0
+    current_coord = path_coord
+    while our_map[current_coord] != 2:
+        if current_coord[COL] - 1 < 0:
+            break
+        dist_to_west_bound += 1
+        current_coord = (current_coord[COL] - 1, current_coord[ROW])
+
+    return np.min([dist_to_north_bound, dist_to_west_bound, 
+        dist_to_east_bound, dist_to_south_bound])
+
+
+def get_path_cost(path, our_map):
+    count_cross_lane_boundary = 0
+    min_dist_from_lane_bound = []
+
+    for i, p in enumerate(path):
+        x = round(p[0])
+        y = round(p[1])
+
+        # if crossing a lane boundary
+        if our_map[(x, y)] == 2:
+            count_cross_lane_boundary += 1
+        # if not crossing a lane boundary, get minimum distance from lane boundary
+        else:
+            d = dist_from_lane_bound((x, y), our_map)
+            min_dist_from_lane_bound.append(d)
+
+    return count_cross_lane_boundary - np.mean(min_dist_from_lane_bound) 
