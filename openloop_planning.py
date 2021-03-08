@@ -1,5 +1,6 @@
 import sys
-sys.path.append('/home/khushal/PycharmProjects/Lyft-Motion-Planning/l5kit/l5kit')
+# sys.path.append('/home/khushal/PycharmProjects/Lyft-Motion-Planning/l5kit/l5kit')
+sys.path.append('/Users/nicole/OSU/Lyft-Motion-Planning/l5kit/l5kit')
 
 from tempfile import gettempdir
 import matplotlib.pyplot as plt
@@ -19,17 +20,22 @@ from l5kit.visualization import TARGET_POINTS_COLOR, PREDICTED_POINTS_COLOR, dra
 from l5kit.kinematic import AckermanPerturbation
 from l5kit.random import GaussianRandomGenerator
 
+from extract_map import extract_map
+from path_generator import PathGenerator
 import os
 
 # Prepare data path and load cfg
 # set env variable for data
-os.environ["L5KIT_DATA_FOLDER"] = "prediction-dataset/"
+# os.environ["L5KIT_DATA_FOLDER"] = "prediction-dataset/"
+os.environ["L5KIT_DATA_FOLDER"] = '/Users/nicole/OSU/Lyft-Motion-Planning/prediction-dataset'
 dm = LocalDataManager(None)
 # get config
-cfg = load_config_data("prediction-dataset/config.yaml")
+# cfg = load_config_data("prediction-dataset/config.yaml")
+cfg = load_config_data("/Users/nicole/OSU/Lyft-Motion-Planning/prediction-dataset/config.yaml")
 
 # Load the model
-model_path = "prediction-dataset/planning_model_20201208.pt"
+# model_path = "prediction-dataset/planning_model_20201208.pt"
+model_path = '/Users/nicole/OSU/l5kit/pre-trained-models/planning_model_20201208.pt'
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = torch.load(model_path).to(device)
 model = model.eval()
@@ -55,22 +61,52 @@ yaw_gts = []
 
 torch.set_grad_enabled(False)
 
-for idx_data, data in enumerate(tqdm(eval_dataloader)):
-    data = {k: v.to(device) for k, v in data.items()}
-    result_dl = model(data)
-    position_preds_dl.append(result_dl["positions"].detach().cpu().numpy())
-    yaw_preds_dl.append(result_dl["yaws"].detach().cpu().numpy())
+# for idx_data, data_ in enumerate(tqdm(eval_dataloader)):
+#     data = {k: v.to(device) for k, v in data_.items()}
+#     result_dl = model(data)
+#     position_preds_dl.append(result_dl["positions"].detach().cpu().numpy())
+#     yaw_preds_dl.append(result_dl["yaws"].detach().cpu().numpy())
+idx_data = 0
+for frame_number in range(0, len(eval_dataset), len(eval_dataset) // 20):
+    data = eval_dataloader.dataset[frame_number]
+
+    data_batch = default_collate([data])
+
+    result_dl = model(data_batch)
+    predicted_positions = result_dl["positions"].detach().cpu().numpy().squeeze()
+    print('dl predicted positions')
+    print(predicted_positions)
+    yaw_positions = result_dl["yaws"].detach().cpu().numpy().squeeze()
+    
+    position_preds_dl.append(predicted_positions)
+    yaw_preds_dl.append(yaw_positions)
 
     # TODO: Lattice Planner results
+    print('lattice plan for frame number {f}'.format(f=frame_number))
     our_map, start_position, end_position, start_heading, end_heading = extract_map(data, rasterizer)
-    # result_lp = lattice_planner()
+    start_x = start_position[0]
+    start_y = start_position[1]
+    start_theta = start_heading
+    start_curvature = 0
+    goal_x = end_position[0]
+    goal_y = end_position[1]
+    goal_theta = end_heading
+    goal_curvature = 1
+    pg = PathGenerator(start_x, start_y, start_theta, start_curvature, 
+        goal_x, goal_y, goal_theta, goal_curvature,
+        alpha=10, beta=10, gamma=10, kmax=0.5)
+    print(pg.path)
     # position_preds_lp.append(result_lp["positions"].detach().cpu().numpy())
     # yaw_preds_lp.append(result_lp["yaws"].detach().cpu().numpy())
 
-    position_gts.append(data["target_positions"].detach().cpu().numpy())
-    yaw_gts.append(data["target_yaws"].detach().cpu().numpy())
+    # position_gts.append(data["target_positions"].detach().cpu().numpy())
+    # yaw_gts.append(data["target_yaws"].detach().cpu().numpy())
+    position_gts.append(data["target_positions"])
+    yaw_gts.append(data["target_yaws"])
+    
     if idx_data == 10:
         break
+    idx_data += 1
 
 position_preds_dl = np.concatenate(position_preds_dl)
 yaw_preds_dl = np.concatenate(yaw_preds_dl)
