@@ -82,12 +82,10 @@ class PathGenerator:
         y_list.insert(0, self.y0)
         y_list.insert(-1, self.yf)
         
-        path = [x_list, y_list, t_list, k_list]
+        self.path = [x_list, y_list, t_list, k_list]
 
         # information of our s values, if helpful
-        s_info = {'min': 0, 'max':s_i, 'interval':self.interval}
-
-        return path, s_info
+        self.s_info = {'min': 0, 'max':s_i, 'interval':self.interval}
 
     def final_spiral(self, s):
         """ Our final k(s) equation """
