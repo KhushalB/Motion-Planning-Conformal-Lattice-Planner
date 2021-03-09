@@ -41,9 +41,10 @@ class PathGenerator:
         self.p4 = 1.
 
         # Constraints for the optimization problem
-        self.bound_p1 = [-1*self.kmax, self.kmax]    # p1's constraint
-        self.bound_p2 = [-1*self.kmax, self.kmax]    # p2's constraint
-        self.bounds = [self.bound_p1, self.bound_p2]
+        self.bound_p1 = (-1*self.kmax, self.kmax)    # p1's constraint
+        self.bound_p2 = (-1*self.kmax, self.kmax)    # p2's constraint
+        self.bound_p4 = (0, goal_curvature)
+        self.bounds = [self.bound_p1, self.bound_p2, self.bound_p4]
 
         # TODO: optimize self.objective_function
         # path_raw = "Optimization of self.objective_function() for params p1, p2, p4"
@@ -51,8 +52,9 @@ class PathGenerator:
         x_0 = [self.p1, self.p2, self.p4]  # initial guess
         print('initial guess')
         print(self.objective_function(x_0))
-        output_params = minimize(self.objective_function, x_0)
-        print(output_params)
+        # output_params = minimize(self.objective_function, x_0)
+        output_params = minimize(self.objective_function, x_0, bounds=self.bounds)
+        print(output_params['x'])
         # path = "The path above, but mapping the p values back to spiral parameters"
         self.p1 = output_params['x'][0]
         self.p2 = output_params['x'][1]
@@ -67,9 +69,12 @@ class PathGenerator:
         self.k_list = []
         
         # get theta(s) and k(s) for all 's' with step size 'self.interval'
+        print(s_i)
+        print(self.p4)
         while s_i <= self.p4:
-            k_list.append(self.final_spiral(s_i))
-            t_list.append(self.final_theta(s_i))
+        # while s_i <= abs(self.p4):
+            self.k_list.append(self.final_spiral(s_i))
+            self.t_list.append(self.final_theta(s_i))
             s_i += self.interval
 
         # use our theta(s) values to find x(s) and y(s) values with trapezoid rule
@@ -82,7 +87,7 @@ class PathGenerator:
         y_list.insert(0, self.y0)
         y_list.insert(-1, self.yf)
         
-        self.path = [x_list, y_list, t_list, k_list]
+        self.path = [x_list, y_list, self.t_list, self.k_list]
 
         # information of our s values, if helpful
         self.s_info = {'min': 0, 'max':s_i, 'interval':self.interval}
@@ -93,7 +98,7 @@ class PathGenerator:
 
     def final_theta(self, s):
         """ Our final theta(s) equation """
-        return self.t0 + self.a_list[3]/4*s**4 + self.a_list[2]/3*s**3 + self.a_list[1]/2*s**2 + a_list[0]*s
+        return self.t0 + self.a_list[3]/4*s**4 + self.a_list[2]/3*s**3 + self.a_list[1]/2*s**2 + self.a_list[0]*s
 
     def x_trapezoidal(self):
         """ Uses the trapezoidal rule to estimate x. 
@@ -105,7 +110,7 @@ class PathGenerator:
         for s_i in range(len(self.t_list)-2):
             x_s = self.x0 + (1/2)*(cos(self.t_list[s_i])+cos(self.t_list[s_i+1]))*self.interval
             x_list.append(x_s)
-        return x_list[]
+        return x_list
 
     def y_trapezoidal(self):
         """ Uses the trapezoidal rule to estimate y. 
@@ -117,7 +122,7 @@ class PathGenerator:
         for s_i in range(len(self.t_list)-2):
             y_s = self.y0 + (1/2)*(sin(self.t_list[s_i])+sin(self.t_list[s_i+1]))*self.interval
             y_list.append(y_s)
-        return y_list[]
+        return y_list
 
     def objective_function(self, x):
         """ the parameters to optimize are p1, p2, and p4 """
@@ -128,9 +133,14 @@ class PathGenerator:
         # objective function needs to return a scalar value for scipy.optimize to work - Nicole
         result = self.f_be(p1, p2, p4) + self.x_soft(p1, p2, p4) + self.y_soft(p1, p2, p4) + self.theta_soft(p1, p2, p4)
         return result[0]
+        # return result
 
-    def k_s(self, s, p1, p2, p4):
+    def k_s(self, x):
         """ Our cubic spiral equation. Not sure if we need this """
+        p1 = x[0]
+        p2 = x[1]
+        p4 = x[2]
+        s = p4
         return self.a3_map(p1, p2, p4)*s**3 + self.a2_map(p1, p2, p4)*s**2 + self.a1_map(p1, p2, p4)*s + self.a0_map()
 
     def f_be_integrand(self, s, a0, a1, a2, a3):
