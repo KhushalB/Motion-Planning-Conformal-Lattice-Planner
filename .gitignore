@@ -1,2 +1,3 @@
 .idea/
+__pycache__/
 prediction-dataset/planning_model_20201208.pt
