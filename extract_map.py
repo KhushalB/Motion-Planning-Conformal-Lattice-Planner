@@ -41,7 +41,6 @@ def extract_map(data, rasterizer):
 
     return our_map, start_position, end_position, start_heading, end_heading
 
-
 # Path structure: [x_list, y_list, t_list, k_list]
 def always_in_bounds(path, our_map):
     x_list = path[0]
@@ -111,7 +110,7 @@ def get_path_cost(path, our_map):
     for i in range(len(x_list)):
         x = int(round(x_list[i]))
         y = int(round(y_list[i]))
-
+        
         # if crossing a lane boundary
         if our_map[(x, y)] == 2:
             count_cross_lane_boundary += 1

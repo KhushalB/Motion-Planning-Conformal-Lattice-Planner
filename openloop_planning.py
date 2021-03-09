@@ -131,8 +131,6 @@ def lattice_planner(data, rasterizer):
     lowest_cost_path = np.argmin(path_costs)
     best_path = valid_paths[lowest_cost_path]
 
-    # best_path = paths[0]
-
     # get position and yaws 
     # Path structure: [x_list, y_list, t_list, k_list]
     best_path_positions = [np.array([best_path[0][i], best_path[0][i]]) for i in range(len(best_path[0]))]
@@ -188,6 +186,7 @@ for frame_number in range(0, len(eval_dataset), len(eval_dataset) // 20):
     position_preds_lp.append(result_lp_positions)  # TODO: set to list of 50 positions
     yaw_preds_lp.append(result_lp_yaws)  # TODO: set to list of 50 headings
 
+
     im_ego = rasterizer.to_rgb(data["image"].transpose(1, 2, 0))
     # print(result_lp_positions)
     draw_trajectory(im_ego, result_lp_positions, TARGET_POINTS_COLOR)
@@ -201,6 +200,7 @@ for frame_number in range(0, len(eval_dataset), len(eval_dataset) // 20):
     # yaw_gts.append(data["target_yaws"].detach().cpu().numpy())
     position_gts.append(data["target_positions"])
     yaw_gts.append(data["target_yaws"])
+
 
     if idx_data == 10:
         break
