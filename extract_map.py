@@ -33,8 +33,10 @@ def extract_map(data, rasterizer):
                 if not np.array_equal(cell, OFF_ROAD):
                     our_map[col, row] = 2
 
-    start_position = history_positions_pixels[0]
-    end_position = target_positions_pixels[-1]
+    # start_position = history_positions_pixels[0]
+    # end_position = target_positions_pixels[-1]
+    start_position = data["history_positions"][0]
+    end_position = data["target_positions"][-1]
 
     start_heading = data['history_yaws'][0]
     end_heading = data['target_yaws'][-1]
