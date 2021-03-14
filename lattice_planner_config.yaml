@@ -1,0 +1,10 @@
+L5KIT_REPO_PATH: '/Users/nicole/OSU/Lyft-Motion-Planning/l5kit/l5kit'
+L5KIT_DATA_FOLDER: '/Users/nicole/OSU/Lyft-Motion-Planning/prediction-dataset'
+L5KIT_DATA_CONFIG: '/Users/nicole/OSU/Lyft-Motion-Planning/prediction-dataset/config.yaml'
+MODEL_PATH: '/Users/nicole/OSU/l5kit/pre-trained-models/planning_model_20201208.pt'
+FRAME_INCREMENTS: 2000
+DATA_SAMPLES: 500
+LANE_CHECKING_ON: False
+STRAIGHT_LINE_COST_FUNC: True
+QUANT_SAVE_FOLDER: '/Users/nicole/OSU/Lyft-Motion-Planning/experiment_results/no_lane_checking/'
+QUAL_SAVE_FOLDER: '/Users/nicole/OSU/Lyft-Motion-Planning/experiment_results/no_lane_checking/maps/'
